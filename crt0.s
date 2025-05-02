@@ -225,6 +225,10 @@ detectNTSC:
 	ldx #0
 	jsr _set_vram_update
 
+	lda #$00
+	sta $5105
+	sta $5130
+
 	lda #$03
 	jsr _set_prg_mode
 	lda #$03
@@ -244,24 +248,24 @@ detectNTSC:
 	clc 
 	lda #$00
 	ldx #$00
-	; jmp @init_chr_bank_loop
-@init_chr_bank_loop:	
+	jmp @init_chr_bank_loop
+
+@init_chr_bank_loop:
     sta $5120, x
 	adc #$01
 	tax 
 	cmp #$0C
 	bne @init_chr_bank_loop
-	beq @init_less
+	clc 
 
-@init_less:
 	ldx #<music_data_mine_clearance
 	ldy #>music_data_mine_clearance
 	lda #$00
 	jsr famistudio_init
 
-	ldx #<sounds
-	ldy #>sounds
-	jsr famistudio_sfx_init
+	; ldx #<sounds
+	; ldy #>sounds
+	; jsr famistudio_sfx_init
 
 	lda #$fd
 	sta <RAND_SEED
@@ -271,7 +275,6 @@ detectNTSC:
 	sta PPU_SCROLL
 	sta PPU_SCROLL
 
-	jsr _ppu_wait_nmi
 	jmp _main			;no parameters
 
 	.include "LIB/mmc5.s"
@@ -280,9 +283,9 @@ detectNTSC:
 	.include "MUSIC/famistudio_ca65.s"
 	
 	
-.segment "RODATA"
+.segment "BANK1"
 	.include "MUSIC/music.s"
-	.include "MUSIC/sounds.s"
+	; .include "MUSIC/sounds.s"
 
 	
 	

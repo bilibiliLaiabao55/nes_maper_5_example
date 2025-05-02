@@ -1,7 +1,8 @@
 .export _set_chr_mode, _set_chr_mode
 .export _set_prg_5113, _set_prg_5114, _set_prg_5115, _set_prg_5116, _set_prg_5117
 .export _set_chr_5120, _set_chr_5121, _set_chr_5122, _set_chr_5123, _set_chr_5124, _set_chr_5125, _set_chr_5126, _set_chr_5127, _set_chr_5128, _set_chr_5129, _set_chr_512A, _set_chr_512B
-
+.export _set_chr_upper_bits
+.export _set_nametable_mapping
 
 ; [A] mode
 _set_prg_mode:
@@ -63,4 +64,11 @@ _set_chr_512A:
     rts
 _set_chr_512B:
     sta $512B
+    rts
+_set_chr_upper_bits:
+    sta $5130
+    rts
+
+_set_nametable_mapping:
+    sta $5105
     rts

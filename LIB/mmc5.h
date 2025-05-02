@@ -21,5 +21,7 @@ void __fastcall__ set_chr_5128(unsigned char bankID);
 void __fastcall__ set_chr_5129(unsigned char bankID);
 void __fastcall__ set_chr_512A(unsigned char bankID);
 void __fastcall__ set_chr_512B(unsigned char bankID);
+void __fastcall__ set_chr_upper_bits(unsigned char id);
 
+void __fastcall__ set_nametable_mapping(unsigned char mapping);
 #endif

@@ -12,6 +12,8 @@
 	.macpack	longbranch
 	.forceimport	__STARTUP__
 	.import		_famistudio_music_play
+	.import		_famistudio_music_pause
+	.import		_famistudio_music_stop
 	.import		_set_chr_5120
 	.import		_set_chr_5121
 	.import		_set_chr_5122
@@ -23,19 +25,29 @@
 	.import		_pad_poll
 	.import		_vram_adr
 	.import		_vram_put
+	.import		_set_vram_buffer
+	.import		_one_vram_buffer
 	.import		_get_pad_new
 	.export		_pad
 	.export		_pad_new
 	.export		_font_index
+	.export		_song_index
+	.export		_paused
 	.export		_i
-	.export		_text
+	.export		_text1
+	.export		_text2
+	.export		_text3
 	.export		_palette
 	.export		_main
 
 .segment	"RODATA"
 
-_text:
+_text1:
 	.byte	$48,$45,$4C,$4C,$4F,$20,$57,$4F,$52,$4C,$44,$21,$00
+_text2:
+	.byte	$53,$4F,$4E,$47,$20,$49,$4E,$44,$45,$58,$3A,$00
+_text3:
+	.byte	$46,$4F,$4E,$54,$20,$49,$4E,$44,$45,$58,$3A,$00
 _palette:
 	.byte	$0F
 	.byte	$00
@@ -62,6 +74,10 @@ _pad:
 _pad_new:
 	.res	1,$00
 _font_index:
+	.res	1,$00
+_song_index:
+	.res	1,$00
+_paused:
 	.res	1,$00
 _i:
 	.res	1,$00
@@ -98,25 +114,118 @@ _i:
 	lda     #$00
 	sta     _i
 ;
-; while(text[i]){
+; while(text1[i]){
 ;
 	jmp     L0004
 ;
-; vram_put(text[i]); // this pushes 1 char to the screen
+; vram_put(text1[i]); // this pushes 1 char to the screen
 ;
 L0002:	ldy     _i
-	lda     _text,y
+	lda     _text1,y
 	jsr     _vram_put
 ;
 ; ++i;
 ;
 	inc     _i
 ;
-; while(text[i]){
+; while(text1[i]){
 ;
 L0004:	ldy     _i
-	lda     _text,y
+	lda     _text1,y
 	bne     L0002
+;
+; vram_adr(NTADR_A(9,15)); // screen is 32 x 30 tiles
+;
+	ldx     #$21
+	lda     #$E9
+	jsr     _vram_adr
+;
+; i = 0;
+;
+	lda     #$00
+	sta     _i
+;
+; while(text2[i]){
+;
+	jmp     L0009
+;
+; vram_put(text2[i]); // this pushes 1 char to the screen
+;
+L0007:	ldy     _i
+	lda     _text2,y
+	jsr     _vram_put
+;
+; ++i;
+;
+	inc     _i
+;
+; while(text2[i]){
+;
+L0009:	ldy     _i
+	lda     _text2,y
+	bne     L0007
+;
+; vram_adr(NTADR_A(9,16)); // screen is 32 x 30 tiles
+;
+	ldx     #$22
+	lda     #$09
+	jsr     _vram_adr
+;
+; i = 0;
+;
+	lda     #$00
+	sta     _i
+;
+; while(text3[i]){
+;
+	jmp     L000E
+;
+; vram_put(text3[i]); // this pushes 1 char to the screen
+;
+L000C:	ldy     _i
+	lda     _text3,y
+	jsr     _vram_put
+;
+; ++i;
+;
+	inc     _i
+;
+; while(text3[i]){
+;
+L000E:	ldy     _i
+	lda     _text3,y
+	bne     L000C
+;
+; vram_adr(NTADR_C(11,14)); // screen is 32 x 30 tiles
+;
+	ldx     #$29
+	lda     #$CB
+	jsr     _vram_adr
+;
+; i = 0;
+;
+	lda     #$00
+	sta     _i
+;
+; while(text1[i]){
+;
+	jmp     L0013
+;
+; vram_put(text1[i]); // this pushes 1 char to the screen
+;
+L0011:	ldy     _i
+	lda     _text1,y
+	jsr     _vram_put
+;
+; ++i;
+;
+	inc     _i
+;
+; while(text1[i]){
+;
+L0013:	ldy     _i
+	lda     _text1,y
+	bne     L0011
 ;
 ; famistudio_music_play(0);
 ;
@@ -126,9 +235,17 @@ L0004:	ldy     _i
 ;
 	jsr     _ppu_on_all
 ;
+; ppu_wait_nmi();
+;
+	jsr     _ppu_wait_nmi
+;
+; set_vram_buffer();
+;
+	jsr     _set_vram_buffer
+;
 ; pad = pad_poll(0);
 ;
-L0007:	lda     #$00
+L0016:	lda     #$00
 	jsr     _pad_poll
 	sta     _pad
 ;
@@ -138,10 +255,31 @@ L0007:	lda     #$00
 	jsr     _get_pad_new
 	sta     _pad_new
 ;
+; one_vram_buffer(song_index+0x30, NTADR_A(21, 15));
+;
+	lda     _song_index
+	clc
+	adc     #$30
+	jsr     pusha
+	ldx     #$21
+	lda     #$F5
+	jsr     _one_vram_buffer
+;
+; one_vram_buffer(font_index+0x30, NTADR_A(21, 16));
+;
+	lda     _font_index
+	clc
+	adc     #$30
+	jsr     pusha
+	ldx     #$22
+	lda     #$15
+	jsr     _one_vram_buffer
+;
 ; if(pad_new & PAD_A){
 ;
+	lda     _pad_new
 	and     #$80
-	beq     L000A
+	beq     L0027
 ;
 ; ++font_index;
 ;
@@ -151,13 +289,13 @@ L0007:	lda     #$00
 ;
 	lda     _font_index
 	cmp     #$04
-	bne     L000F
+	bne     L0026
 	lda     #$00
 	sta     _font_index
 ;
 ; set_chr_5120(font_index * 4);
 ;
-L000F:	lda     _font_index
+L0026:	lda     _font_index
 	asl     a
 	asl     a
 	jsr     _set_chr_5120
@@ -189,13 +327,58 @@ L000F:	lda     _font_index
 	adc     #$03
 	jsr     _set_chr_5123
 ;
+; if((pad_new & PAD_B)&&(!paused)){
+;
+L0027:	lda     _pad_new
+	and     #$40
+	beq     L002B
+	lda     _paused
+	bne     L002B
+;
+; ++song_index;
+;
+	inc     _song_index
+;
+; if(song_index == 2)song_index = 0;
+;
+	lda     _song_index
+	cmp     #$02
+	bne     L0024
+	lda     #$00
+	sta     _song_index
+;
+; famistudio_music_stop();
+;
+L0024:	jsr     _famistudio_music_stop
+;
+; famistudio_music_play(song_index);
+;
+	lda     _song_index
+	jsr     _famistudio_music_play
+;
+; if(pad_new & PAD_START){
+;
+L002B:	lda     _pad_new
+	and     #$10
+	beq     L0025
+;
+; paused = !paused;
+;
+	lda     _paused
+	jsr     bnega
+	sta     _paused
+;
+; famistudio_music_pause(paused);
+;
+	jsr     _famistudio_music_pause
+;
 ; ppu_wait_nmi();
 ;
-L000A:	jsr     _ppu_wait_nmi
+L0025:	jsr     _ppu_wait_nmi
 ;
 ; while (1){
 ;
-	jmp     L0007
+	jmp     L0016
 
 .endproc
 
