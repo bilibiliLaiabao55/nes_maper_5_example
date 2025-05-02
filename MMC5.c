@@ -3,9 +3,7 @@
  *	using neslib
  *	Doug Fraker 2018
  */	
- 
- 
- 
+
 #include "MUSIC/famistudio_cc65.h"
 #include "LIB/mmc5.h"
 #include "LIB/neslib.h"
@@ -25,11 +23,14 @@
 // all variables should be global for speed
 // zeropage global is even faster
 
+unsigned char pad; 
+unsigned char pad_new; 
+unsigned char font_index; 
 unsigned char i;
 
 
 
-const unsigned char text[]="Hello World!"; // zero terminated c string
+const unsigned char text[]="HELLO WORLD!"; // zero terminated c string
 
 const char palette[]={
 BLACK, DK_GY, LT_GY, WHITE,
@@ -57,19 +58,28 @@ void main (void) {
 		vram_put(text[i]); // this pushes 1 char to the screen
 		++i;
 	}	
-	famistudio_music_play(0);
 	// vram_adr and vram_put only work with screen off
 	// NOTE, you could replace everything between i = 0; and here with...
 	// vram_write(text,sizeof(text));
-	// does the same thing
-	
+	famistudio_music_play(0);
 	ppu_on_all(); //	turn on screen
 	
 	
 	while (1){
 		// infinite loop
 		// game code can go here later.
-		
+		pad = pad_poll(0);
+		pad_new = get_pad_new(0);
+		if(pad_new & PAD_A){
+			++font_index;
+			if(font_index == 4)font_index = 0;
+			set_chr_5120(font_index * 4);
+			set_chr_5121(font_index * 4 + 1);
+			set_chr_5122(font_index * 4 + 2);
+			set_chr_5123(font_index * 4 + 3);
+			
+		}
+		ppu_wait_nmi();
 	}
 }
 	

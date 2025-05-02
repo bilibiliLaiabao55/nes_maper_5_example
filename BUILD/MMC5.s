@@ -12,11 +12,21 @@
 	.macpack	longbranch
 	.forceimport	__STARTUP__
 	.import		_famistudio_music_play
+	.import		_set_chr_5120
+	.import		_set_chr_5121
+	.import		_set_chr_5122
+	.import		_set_chr_5123
 	.import		_pal_bg
+	.import		_ppu_wait_nmi
 	.import		_ppu_off
 	.import		_ppu_on_all
+	.import		_pad_poll
 	.import		_vram_adr
 	.import		_vram_put
+	.import		_get_pad_new
+	.export		_pad
+	.export		_pad_new
+	.export		_font_index
 	.export		_i
 	.export		_text
 	.export		_palette
@@ -25,7 +35,7 @@
 .segment	"RODATA"
 
 _text:
-	.byte	$48,$65,$6C,$6C,$6F,$20,$57,$6F,$72,$6C,$64,$21,$00
+	.byte	$48,$45,$4C,$4C,$4F,$20,$57,$4F,$52,$4C,$44,$21,$00
 _palette:
 	.byte	$0F
 	.byte	$00
@@ -47,6 +57,12 @@ _palette:
 .segment	"BSS"
 
 .segment	"ZEROPAGE"
+_pad:
+	.res	1,$00
+_pad_new:
+	.res	1,$00
+_font_index:
+	.res	1,$00
 _i:
 	.res	1,$00
 
@@ -110,9 +126,76 @@ L0004:	ldy     _i
 ;
 	jsr     _ppu_on_all
 ;
+; pad = pad_poll(0);
+;
+L0007:	lda     #$00
+	jsr     _pad_poll
+	sta     _pad
+;
+; pad_new = get_pad_new(0);
+;
+	lda     #$00
+	jsr     _get_pad_new
+	sta     _pad_new
+;
+; if(pad_new & PAD_A){
+;
+	and     #$80
+	beq     L000A
+;
+; ++font_index;
+;
+	inc     _font_index
+;
+; if(font_index == 4)font_index = 0;
+;
+	lda     _font_index
+	cmp     #$04
+	bne     L000F
+	lda     #$00
+	sta     _font_index
+;
+; set_chr_5120(font_index * 4);
+;
+L000F:	lda     _font_index
+	asl     a
+	asl     a
+	jsr     _set_chr_5120
+;
+; set_chr_5121(font_index * 4 + 1);
+;
+	lda     _font_index
+	asl     a
+	asl     a
+	clc
+	adc     #$01
+	jsr     _set_chr_5121
+;
+; set_chr_5122(font_index * 4 + 2);
+;
+	lda     _font_index
+	asl     a
+	asl     a
+	clc
+	adc     #$02
+	jsr     _set_chr_5122
+;
+; set_chr_5123(font_index * 4 + 3);
+;
+	lda     _font_index
+	asl     a
+	asl     a
+	clc
+	adc     #$03
+	jsr     _set_chr_5123
+;
+; ppu_wait_nmi();
+;
+L000A:	jsr     _ppu_wait_nmi
+;
 ; while (1){
 ;
-L000A:	jmp     L000A
+	jmp     L0007
 
 .endproc
 

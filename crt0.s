@@ -105,7 +105,7 @@ DATA_PTR:			.res 2
 
     .byte "NES",$1a
 	.byte $02
-	.byte $01
+	.byte $02
 	.byte %01010000
 	.byte %00000000
 	.byte $00
@@ -175,7 +175,7 @@ clearRAM:
     sta $500,x
     sta $600,x
     sta $700,x
-    inx
+    inx 
     bne @1
 
 	lda #4
@@ -227,17 +227,33 @@ detectNTSC:
 
 	lda #$03
 	jsr _set_prg_mode
+	lda #$03
+	jsr _set_chr_mode
 	
 	lda #$00
-	jsr _set_prg_5114
-	lda #$01
-	jsr _set_prg_5115
-	lda #$02
-	jsr _set_prg_5116
-	lda #$03
-	jsr _set_prg_5117
+	ldx #$00
+@init_prg_bank_loop:	
+    sta $5114, x
+	adc #$01
+	tax 
+	cmp #$04
+	bne @init_prg_bank_loop
+	beq @init_chr_bank
 
-	
+@init_chr_bank:
+	clc 
+	lda #$00
+	ldx #$00
+	; jmp @init_chr_bank_loop
+@init_chr_bank_loop:	
+    sta $5120, x
+	adc #$01
+	tax 
+	cmp #$0C
+	bne @init_chr_bank_loop
+	beq @init_less
+
+@init_less:
 	ldx #<music_data_mine_clearance
 	ldy #>music_data_mine_clearance
 	lda #$00
